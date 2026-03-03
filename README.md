@@ -30,7 +30,7 @@ A full-stack retail stock management and accounting system built with **React (V
 
 ---
 
-## 🚀 Quick Start — XAMPP on Arch Linux (or any OS)
+## 🚀 Quick Start, XAMPP on Arch Linux (Sorry for the arch archetype BTW)
 
 ### 1. Prerequisites
 
@@ -39,6 +39,23 @@ A full-stack retail stock management and accounting system built with **React (V
 # or use your distro's package for PHP + MySQL
 sudo pacman -S nodejs npm    # only npm is needed; PHP is inside XAMPP
 ```
+
+```bash
+#Fedora
+sudo dnf install nodejs npm
+```
+```bash
+#Debian-based
+#Hope this is it :)
+sudo apt install nodejs npm
+```
+
+
+Hello windows guys :) I don't know how you install nodejs and npm but I'll try something for you :)
+
+# https://nodejs.org/en/download/
+
+have fun ;)
 
 Start MySQL and Apache via XAMPP:
 
