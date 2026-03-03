@@ -1,4 +1,4 @@
-# 📦 Stock Management System — Growth Engine
+# 📦 Stock Management System, Growth Engine
 
 A full-stack retail stock management and accounting system built with **React (Vite)** on the frontend and **PHP + MySQL** on the backend. Designed to run locally on XAMPP and be easily shared with your team.
 
