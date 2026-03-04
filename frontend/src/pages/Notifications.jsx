@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../lib/storage';
+import { apiFetch } from '../lib/storage';
 import { Bell, AlertTriangle, Flame, PackageX, Clock, RefreshCw, CheckCircle, TrendingDown } from 'lucide-react';
 
 function Kshs(n) {
@@ -42,11 +42,8 @@ export default function Notifications() {
   const fetch_ = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}?action=getDashboardStats`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.status === 'success') setData(json.data);
-      }
+      const json = await apiFetch('getDashboardStats');
+      if (json && json.status === 'success') setData(json.data);
     } catch {}
     setLoading(false);
   };

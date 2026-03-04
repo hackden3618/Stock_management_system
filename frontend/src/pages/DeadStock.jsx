@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, AlertTriangle, TrendingDown, Clock, MousePointer2 } from 'lucide-react';
-
-const API = 'http://127.0.0.1:8000/endpoints.php';
+import { apiFetch } from '../lib/storage';
 
 export default function DeadStock() {
   const [data, setData] = useState([]);
@@ -10,9 +9,8 @@ export default function DeadStock() {
   useEffect(() => {
     const fetchDeadStock = async () => {
       try {
-        const res = await fetch(`${API}?action=getDashboardStats`);
-        if (res.ok) {
-          const json = await res.json();
+        const json = await apiFetch('getDashboardStats');
+        if (json && json.status === 'success') {
           setData(json.data.dead_stock || []);
         }
       } catch (err) {

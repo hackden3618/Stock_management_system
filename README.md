@@ -1,162 +1,182 @@
-# Stock Management System
+# 📦 Growth Engine — Stock Management System
 
-A simple full-stack stock management system:
-
-- Backend: PHP (built-in server)
-- Frontend: React + Vite
+A full-stack retail POS and inventory system. PHP API backend, React + Vite frontend, MySQL database.
 
 ---
 
-# Requirements
+## 🚀 Quick Start (First time setup)
 
-Make sure you have installed:
-
-- Node.js (v18 or newer)
-- npm (comes with Node)
-- PHP
-
----
-
-# 🚀 Running the Project
-
----
-
-## 🪟 Windows (VS Code Recommended)
-
-### Step 1: Open the project
-
-- Open **VS Code**
-- Click **File → Open Folder**
-- Select the project folder
-
----
-
-### Step 2: Open terminal
-
-- Press: `Ctrl + ~`
-
----
-
-### Step 3: Start Backend (PHP)
-
-If PHP works globally:
-
-```powershell
-php -S 127.0.0.1:8000 -t api
-````
-
-If using XAMPP:
-
-```powershell
-C:\xampp\php\php.exe -S 127.0.0.1:8000 -t api
+### 1. Clone the repo
+```bash
+git clone https://github.com/YOUR_USERNAME/Stock_management_system.git
+cd Stock_management_system
 ```
 
----
+### 2. Start MySQL
+Make sure MySQL is running (via XAMPP, WAMP, or system service):
+```bash
+# Arch Linux / systemd
+sudo systemctl start mysqld
 
-### Step 4: Start Frontend
+# XAMPP
+sudo /opt/lampp/lampp startmysql
+```
 
-Open a **new terminal** in VS Code:
+### 3. Run the database migration ← everyone does this once
+```bash
+cd api
+php migrate.php
+```
 
-```powershell
+You should see output like:
+```
+── Database ──
+  ✅ Database `stock_mgmt_system` ready
+
+── Tables ──
+  ✅ Table `users` ready
+  ✅ Table `products` ready
+  ...
+
+── Seed data ──
+  ✅ Admin user created  (username: admin / password: admin123)
+  ✅ Sample products + stock batches seeded (6 products)
+
+✅ Migration complete.
+```
+
+### 4. Start the PHP API server
+```bash
+# from the api/ directory
+php -S 127.0.0.1:8000
+```
+
+### 5. Start the React frontend
+```bash
 cd frontend
-npm install
+npm install       # first time only
 npm run dev
 ```
 
----
-
-### Step 5: Open the app
-
-Go to:
-
-* [http://localhost:5173](http://localhost:5173)
+### 6. Open the app
+Go to **http://localhost:5173** and log in with:
+- **Username:** `admin`
+- **Password:** `admin123`
 
 ---
 
-## 🐧 Linux (Arch / Ubuntu / etc.)
+## 🔄 Collaborator workflow (pulling updates)
 
-### Step 1: Start Backend
+When a teammate pushes new code, here's what to do:
 
 ```bash
-php -S 127.0.0.1:8000 -t api
+git pull
+cd api
+php migrate.php    # ← always run this after pulling
 ```
 
-If using XAMPP:
+`migrate.php` is **safe to run multiple times** — it skips steps that are already done and only applies what's new. You will never lose your existing data by running it again.
 
-```bash
-/opt/lampp/bin/php -S 127.0.0.1:8000 -t api
 ```
-
----
-
-### Step 2: Start Frontend
-
-Open another terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
+── Column migrations ──
+  ⏭  Add image_path to products (already applied)
+  ✅ Add new_column_name           ← only new things get applied
 ```
 
 ---
 
-### Step 3: Open the app
+## 📂 Project structure
 
-* [http://localhost:5173](http://localhost:5173)
-
----
-
-# 🧠 Notes
-
-* Backend runs on: `127.0.0.1:8000`
-* Frontend runs on: `localhost:5173`
-* Keep both terminals running
-
----
-
-# ❗ Troubleshooting
-
-### PHP not found
-
-* Windows: Use full path (XAMPP example above)
-* Linux: Install PHP or use `/opt/lampp/bin/php`
-
----
-
-### Port already in use
-
-Change backend port:
-
-```bash
-/opt/lampp/bin/php -S 127.0.0.1:8001 -t api
+```
+Stock_management_system/
+├── api/
+│   ├── migrate.php      ← run this after every git pull
+│   ├── db.php           ← DB connection + auto-bootstrap
+│   ├── endpoints.php    ← all API actions
+│   ├── auth.php         ← login / token
+│   ├── index.php        ← router
+│   └── uploads/         ← product images (not synced via git)
+├── frontend/
+│   ├── src/
+│   │   ├── pages/       ← Dashboard, Products, Cart, Stock, ...
+│   │   ├── hooks/       ← useSync (online ping)
+│   │   ├── context/     ← AuthContext
+│   │   └── lib/
+│   │       └── storage.js  ← API_BASE_URL + cart helpers
+│   └── package.json
+└── README.md
 ```
 
 ---
 
-### npm not found
+## 🔌 API Endpoints
 
-Install Node.js from:
+Base URL: `http://127.0.0.1:8000/endpoints.php`
 
-* [https://nodejs.org/](https://nodejs.org/)
+| Action | Method | Description |
+|---|---|---|
+| `getProducts` | GET | All products with stock |
+| `getDashboardStats` | GET | KPIs, alerts, top products |
+| `getSalesChart&days=14` | GET | 14-day revenue + profit |
+| `addProduct` | POST | Create product + first batch |
+| `receiveStock` | POST | Add new stock batch |
+| `updateProduct` | POST | Edit name / price / image |
+| `deleteProduct` | POST | Remove product + batches |
+| `sync` | POST | Record a sale (FEFO deduction) |
+| `uploadImage` | POST | Upload product photo |
+| `ping` | GET | Health check |
+
+---
+
+## 🗄️ Database schema
+
+```
+users          → id, username, password_hash, role
+products       → id, name, price, stock_quantity, image_path
+stock_batches  → id, product_id, quantity, buying_price, expiry_date
+sales          → id (UUID), total_amount, created_at
+sale_items     → id, sale_id, product_id, quantity, price, profit
+sync_logs      → id, action_type, payload, synced_at
+```
+
+Stock is deducted **FEFO** (First Expiry, First Out) — oldest batches are consumed first.
 
 ---
 
-# 🧑‍💻 Developer Notes
+## 🖼️ Product images
 
-* Frontend: React (Vite)
-* Backend: Plain PHP
-* No frameworks required
+Product images are uploaded to `api/uploads/` and served by the PHP server. They are **not committed to git** (see `.gitignore`). Each collaborator's uploads folder will contain whatever images they've uploaded on their machine. When you move to a hosted server, you'll copy the uploads folder manually or use shared storage.
 
 ---
 
-# ✔️ Summary
+## ⚙️ Changing the API URL
 
-Run two things:
+If you run the API on a different port or host, update this one line in `frontend/src/lib/storage.js`:
 
-1. Backend (PHP)
-2. Frontend (npm)
-
-That’s it.
+```js
+export const API_BASE_URL = 'http://127.0.0.1:8000/endpoints.php';
+```
 
 ---
+
+## 🐞 Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `No products found` | Make sure `php -S 127.0.0.1:8000` is running in the `api/` folder |
+| `DB init failed` | Run `php migrate.php` and check MySQL is started |
+| Charts show no data | Make at least one sale through the cart |
+| Login fails | Re-run `php migrate.php` — it will re-seed admin if users table is empty |
+| CORS error in browser | Confirm PHP is running on port 8000, not 8080 or another port |
+| Images not showing for collaborators | Images are local — each dev has their own `api/uploads/` |
+
+---
+
+## 👥 Login credentials (default)
+
+| Username | Password | Role |
+|---|---|---|
+| admin | admin123 | Admin |
+
+> ⚠️ Change the admin password after deploying to a live server.
+

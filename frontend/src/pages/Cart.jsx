@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Trash2, ArrowLeft, CheckCircle, Package, AlertCircle, Minus, Plus } from 'lucide-react';
-import { API_BASE_URL, getCart, saveCart } from '../lib/storage';
+import { apiFetch, getCart, saveCart } from '../lib/storage';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -56,18 +56,13 @@ export default function Cart() {
     };
 
     try {
-      const res  = await fetch(`${API_BASE_URL}?action=sync`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-      });
-      const json = await res.json();
+      const json = await apiFetch('sync', payload);
 
-      if (json.status === 'success') {
+      if (json && json.status === 'success') {
         commit([]);                      // clear cart
         setSuccess({ saleId, total });   // show receipt
       } else {
-        setError(json.message || 'Sale failed. Please try again.');
+        setError(json?.message || 'Sale failed. Please try again.');
       }
     } catch {
       setError('Cannot reach server. Check that the PHP API is running on port 8000.');
@@ -135,7 +130,7 @@ export default function Cart() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+      <div style={{ className: 'cart-layout', style: { alignItems: 'start' }}}>
         {/* Item list */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {items.map((item, idx) => (
