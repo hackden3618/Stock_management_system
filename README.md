@@ -1,6 +1,3 @@
----
-
-````md
 # Stock Management System
 
 A simple full-stack stock management system:
