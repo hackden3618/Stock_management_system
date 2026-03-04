@@ -1,17 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { StorageManager, StorageKeys, API_BASE_URL } from '../lib/storage';
+import { StorageManager, StorageKeys, apiFetch, API_BASE_URL } from '../lib/storage';
 import { Package, Plus, X, Edit, RefreshCw, PlusCircle, Image as ImageIcon, TrendingUp, Upload, Trash2 } from 'lucide-react';
 
 const EMPTY_NEW  = { name: '', price: '', total_batch_cost: '', quantity: '', expiry_date: '', image_path: '', image_preview: '' };
 const EMPTY_RECV = { quantity: '', total_batch_cost: '', expiry_date: '' };
 
+// POST wrapper using apiFetch (handles 401 auto-logout)
 async function apiCall(action, body) {
-  const res = await fetch(`${API_BASE_URL}?action=${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  return res.json();
+  return apiFetch(action, body);
 }
 
 async function uploadImageToServer(base64) {
@@ -30,9 +26,8 @@ async function uploadImageToServer(base64) {
 
 async function refreshProducts(setProducts) {
   try {
-    const res = await fetch(`${API_BASE_URL}?action=getProducts`);
-    if (res.ok) {
-      const d = await res.json();
+    const d = await apiFetch('getProducts');
+    if (d && d.status === 'success') {
       const prods = d.data || [];
       StorageManager.set(StorageKeys.PRODUCTS, prods);
       window.dispatchEvent(new CustomEvent('products-updated'));
@@ -43,9 +38,9 @@ async function refreshProducts(setProducts) {
 
 const Modal = ({ title, onClose, children }) => (
   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-    <div className="card" style={{ width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
+    <div className="card" style={{ width: '100%', maxWidth: 680, maxHeight: '92vh', overflowY: 'auto', padding: '28px 32px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ fontSize: '1.1rem' }}>{title}</h3>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{title}</h3>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
       </div>
       {children}
@@ -75,7 +70,7 @@ function ImagePicker({ preview, onSelect, onClear }) {
       <div
         onClick={() => inputRef.current?.click()}
         style={{
-          width: 90, height: 90, borderRadius: 12,
+          width: 130, height: 130, borderRadius: 14,
           border: `2px dashed ${preview ? 'var(--primary-teal)' : 'var(--border-light)'}`,
           display: 'grid', placeItems: 'center', cursor: 'pointer',
           overflow: 'hidden', flexShrink: 0,

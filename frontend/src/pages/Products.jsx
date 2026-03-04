@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { API_BASE_URL, getCart, saveCart } from '../lib/storage';
+import { apiFetch, getCart, saveCart } from '../lib/storage';
 import { Search, Package, Image as ImageIcon, RefreshCw } from 'lucide-react';
 
 export default function Products() {
@@ -15,9 +15,8 @@ export default function Products() {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API_BASE_URL}?action=getProducts`);
-      const json = await res.json();
-      if (json.status === 'success') setProducts(json.data || []);
+      const json = await apiFetch('getProducts');
+      if (json && json.status === 'success') setProducts(json.data || []);
     } catch {
       toast('⚠️ Could not reach server. Check the API is running.');
     }
@@ -44,15 +43,17 @@ export default function Products() {
   const addToCart = (product) => {
     const qty = quantities[product.id] || 1;
 
-    if (product.stock_quantity <= 0) return toast(`❌ ${product.name} is out of stock.`);
-    if (qty > product.stock_quantity) return toast(`❌ Only ${product.stock_quantity} in stock.`);
+    const sellable = Number(product.sellable_quantity ?? product.stock_quantity);
+    if (Number(product.expired_quantity) > 0 && sellable <= 0) return toast(`❌ ${product.name} has expired and cannot be sold.`);
+    if (sellable <= 0) return toast(`❌ ${product.name} is out of stock.`);
+    if (qty > sellable) return toast(`❌ Only ${sellable} sellable units in stock.`);
 
     const cart     = getCart();
     const existing = cart.find(i => i.id === product.id);
     const totalQty = existing ? existing.quantity + qty : qty;
 
     if (totalQty > product.stock_quantity) {
-      return toast(`❌ Cart already has ${existing?.quantity || 0}. Only ${product.stock_quantity} available.`);
+      return toast(`❌ Cart already has ${existing?.quantity || 0}. Only ${sellable} available.`);
     }
 
     if (existing) {
@@ -109,8 +110,10 @@ export default function Products() {
       ) : (
         <div className="ecom-grid">
           {filteredProducts.map(product => {
-            const isOut = product.stock_quantity <= 0;
-            const isLow = product.stock_quantity > 0 && product.stock_quantity < 10;
+            const sellable   = Number(product.sellable_quantity ?? product.stock_quantity);
+            const isExpired  = Number(product.expired_quantity) > 0 && sellable <= 0;
+            const isOut      = sellable <= 0 && !isExpired;
+            const isLow      = sellable > 0 && sellable < 10;
 
             return (
               <div key={product.id} className="ecom-card" style={{ opacity: isOut ? 0.65 : 1 }}>
@@ -122,12 +125,17 @@ export default function Products() {
                       <ImageIcon size={44} color="var(--border-light)" />
                     </div>
                   )}
-                  {isOut && (
+                  {isExpired && (
+                    <div style={{ position:'absolute', inset:0, background:'rgba(239,68,68,0.75)', display:'grid', placeItems:'center', zIndex:2 }}>
+                      <span style={{ color:'white', fontWeight:900, fontSize:'0.8rem', textAlign:'center', padding:'0 8px' }}>⛔ EXPIRED<br/>Cannot be sold</span>
+                    </div>
+                  )}
+                  {!isExpired && isOut && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', color: 'white', fontWeight: 700, fontSize: '0.85rem', letterSpacing: 1 }}>
                       OUT OF STOCK
                     </div>
                   )}
-                  {!isOut && isLow && (
+                  {!isExpired && !isOut && isLow && (
                     <div style={{ position: 'absolute', top: 8, left: 8, background: 'var(--status-warning)', color: 'white', borderRadius: 6, padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700 }}>
                       LOW STOCK
                     </div>
@@ -140,13 +148,13 @@ export default function Products() {
                     Kshs {parseFloat(product.price).toFixed(2)}
                   </p>
                   <p style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: 6, color: isOut ? 'var(--status-danger)' : isLow ? 'var(--status-warning)' : 'var(--text-muted)', fontWeight: 600 }}>
-                    {product.stock_quantity} in stock
+                    {sellable} in stock{isExpired ? ' (batch expired)' : ''}
                   </p>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12 }}>
                     <button
                       onClick={() => handleQuantity(product.id, (quantities[product.id] || 1) - 1, product.stock_quantity)}
-                      disabled={isOut || (quantities[product.id] || 1) <= 1}
+                      disabled={(isOut || isExpired) || (quantities[product.id] || 1) <= 1}
                       style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1rem', display: 'grid', placeItems: 'center' }}
                     >−</button>
                     <input
@@ -154,13 +162,13 @@ export default function Products() {
                       value={quantities[product.id] || 1}
                       onChange={e => handleQuantity(product.id, e.target.value, product.stock_quantity)}
                       min="1"
-                      max={product.stock_quantity}
-                      disabled={isOut}
+                      max={sellable}
+                      disabled={isOut || isExpired}
                       style={{ width: 52, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-main)', fontSize: '0.9rem', textAlign: 'center', outline: 'none' }}
                     />
                     <button
                       onClick={() => handleQuantity(product.id, (quantities[product.id] || 1) + 1, product.stock_quantity)}
-                      disabled={isOut || (quantities[product.id] || 1) >= product.stock_quantity}
+                      disabled={(isOut || isExpired) || (quantities[product.id] || 1) >= sellable}
                       style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1rem', display: 'grid', placeItems: 'center' }}
                     >+</button>
                   </div>
@@ -170,7 +178,7 @@ export default function Products() {
                   <button
                     className="ecom-btn-cart"
                     onClick={() => addToCart(product)}
-                    disabled={isOut}
+                    disabled={isOut || isExpired}
                     style={{ width: '100%', borderRadius: 8 }}
                   >
                     Add to cart

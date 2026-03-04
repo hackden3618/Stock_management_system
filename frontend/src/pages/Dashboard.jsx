@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../lib/storage';
+import { apiFetch } from '../lib/storage';
 import {
   TrendingUp, AlertCircle, RefreshCw, PackageX, Flame,
-  ShoppingBag, DollarSign, BarChart2, Clock
+  ShoppingBag, DollarSign, BarChart2, Clock, ShieldAlert
 } from 'lucide-react';
 
 function KshsShort(n) {
@@ -301,13 +301,11 @@ export default function Dashboard() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [sRes, cRes] = await Promise.all([
-        fetch(`${API_BASE_URL}?action=getDashboardStats`),
-        fetch(`${API_BASE_URL}?action=getSalesChart&days=14`),
+      const [json, cj] = await Promise.all([
+        apiFetch('getDashboardStats'),
+        apiFetch('getSalesChart', null, 'days=14'),
       ]);
-      if (sRes.ok) {
-        const json = await sRes.json();
-        if (json.status === 'success') {
+      if (json && json.status === 'success') {
           if (prevSalesRef.current !== null && json.data.sales_today !== prevSalesRef.current) {
             setSalesFlash(true);
             setTimeout(() => setSalesFlash(false), 1800);
@@ -316,11 +314,7 @@ export default function Dashboard() {
           setStats(json.data);
           setLastFetch(new Date());
         }
-      }
-      if (cRes.ok) {
-        const cj = await cRes.json();
-        if (cj.status === 'success') setChart(cj.data);
-      }
+      if (cj && cj.status === 'success') setChart(cj.data);
     } catch { /* offline */ }
     setLoading(false);
   }, []);
@@ -353,6 +347,8 @@ export default function Dashboard() {
   const outCount     = stats?.out_of_stock_count      ?? 0;
   const lowCount     = stats?.low_stock_count         ?? 0;
   const turnover     = stats?.turnover_ratio          ?? 0;
+  const totalLosses  = stats?.total_losses            ?? 0;
+  const expiredCount = stats?.expired_count           ?? 0;
 
   const daily      = chart?.daily  ?? [];
   const hourly     = chart?.hourly ?? [];
@@ -403,11 +399,12 @@ export default function Dashboard() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="responsive-grid-4">
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:16 }}>
         <KpiCard icon={<BarChart2 size={20}/>} label="📦 Inventory Value"  value={KshsShort(invVal)}   sub="Click to manage stock"                        border={C.teal}   onClick={() => navigate('/stock')} />
         <KpiCard icon={<ShoppingBag size={20}/>} label="💳 Sales Today"    value={KshsShort(salesToday)} sub={`${txToday} transaction${txToday !== 1 ? 's' : ''}`} border={C.blue}  flash={salesFlash} />
         <KpiCard icon={<DollarSign size={20}/>}  label="💰 Net Profit"     value={KshsShort(profitAll)}  sub="All-time FEFO"                                border={C.green} />
         <KpiCard icon={<TrendingUp size={20}/>}  label="🔥 Sales Velocity" value={KshsShort(burnRate) + '/day'} sub={`All-time: ${KshsShort(salesAll)}`}   border={C.amber} />
+        <KpiCard icon={<ShieldAlert size={20}/>} label="💸 Expired Losses" value={KshsShort(totalLosses)} sub={`${expiredCount} product${expiredCount!==1?'s':''} with expired stock`} border="#ef4444" onClick={() => navigate('/expired-stock')} />
       </div>
 
       {/* ── 14-Day Charts ── */}
