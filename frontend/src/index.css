@@ -485,8 +485,6 @@ body { font-family: var(--font-family); background: var(--bg-app); color: var(--
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-<<<<<<< HEAD
-<<<<<<< HEAD
 @media (max-width: 600px) {
   .responsive-grid-4 { grid-template-columns: 1fr; }
 }
@@ -504,8 +502,3 @@ body { font-family: var(--font-family); background: var(--bg-app); color: var(--
 
 /* ── CSS variable text for gauge – ensure var() resolves in SVG ── */
 svg text { font-family: var(--font-family); }
-
-=======
->>>>>>> 9830a52 (updated everything to have now different users and fixed UI bugs (that I could find))
-=======
->>>>>>> main
