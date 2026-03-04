@@ -723,6 +723,11 @@ body {
 @media (max-width: 600px) {
   .responsive-grid-4 { grid-template-columns: 1fr; }
 }
+@media (min-width: 769px){
+  .mobile-menu-btn{
+    display:none;
+  }
+}
 
 /* ── Responsive 2-col for chart row ────────────────────────────── */
 @media (max-width: 820px) {
